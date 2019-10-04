@@ -1,3 +1,4 @@
+var permissao = false;
 // configuração do módulo
 var app = angular.module('loja', [ 'ngRoute', 'ngResource', 'ngAnimate' ]);
 
@@ -85,156 +86,7 @@ app.config(function($routeProvider) {
 			
 });
 
-// configrações loja de livros
-app.controller("lojaController", function($scope, $http, $location, $routeParams) {
-	
-	$scope.listarPedidos = function () {
-		$http.get("pedido/listar").success(function(response) {
-			$scope.pedidosData = response;
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-	};
-	
-	
-	$scope.removerPedido = function (codPedido) {
-		$http.delete("pedido/deletar/"+codPedido).success(function(response) {
-			$scope.pedidosData = response;
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-	};
-	
-	
-	if ($routeParams.codigoPedido != null){
-		$scope.codigoPedido = $routeParams.codigoPedido;
-	}
-	
-	$scope.finalizarPedido = function () {
 
-		$scope.pedidoObjeto.cliente = $scope.clienteAdiconado;
-		
-		$http.post("pedido/finalizar", {"pedido" : $scope.pedidoObjeto, "itens" : $scope.itensCarrinho}).success(function(response) {
-			$scope.pedidoObjeto = {};
-			$scope.itensCarrinho = {};
-			
-			$location.path("loja/pedidoconfirmado/"+response);
-			
-			sucesso("Pedido Finalizado!");
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-	};
-	
-	
-	$scope.buscarClienteNome = function () {
-		$http.get("cliente/buscarnome/" + $scope.filtroCliente).success(function(response) {
-			$scope.clientesPesquisa = response;
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-	};
-	
-	$scope.adicionarClienteCarrinho = function (cliente) {
-		$scope.pedidoObjeto.cliente = cliente;
-		$scope.clienteAdiconado = cliente;
-		$scope.clientesPesquisa = {};
-		$scope.filtroCliente = "";
-	};
-	
-	
-	if ($routeParams.itens != null && $routeParams.itens.length > 0){
-		
-		$http.get("itempedido/processar/"+ $routeParams.itens).success(function(response) {
-			
-			$scope.itensCarrinho = response;
-			$scope.pedidoObjeto = response[0].pedido;
-			
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-		
-	}else {
-		$scope.carrinhoLivro = new Array();
-	}
-	
-	$scope.addLivro = function (livroid) {
-		$scope.carrinhoLivro.push(livroid);
-		
-	};
-	
-	$scope.recalculo = function (quantidade, livro) {
-		var valorTotal = new Number();
-		for (var i = 0; i < $scope.itensCarrinho.length; i++){
-				var valorLivro = $scope.itensCarrinho[i].livro.valor.replace("R","").replace("$", "").replace(".","").replace(",", ".");
-				if ($scope.itensCarrinho[i].livro.id == livro){
-					valorTotal += parseFloat(valorLivro * quantidade);
-				}else {
-					valorTotal += parseFloat(valorLivro * $scope.itensCarrinho[i].quantidade);
-				}
-				
-		}
-		 $scope.pedidoObjeto.valorTotal = 'R$' + valorTotal.toString();
-	};
-	
-	
-	$scope.removerLivroCarrinho = function (livroid) {
-		
-		$scope.intensTemp = new Array();
-		var valorTotal = new Number();
-		for (var i = 0; i < $scope.itensCarrinho.length; i++){
-			if ($scope.itensCarrinho[i].livro.id === livroid){
-			}else {
-				// itens validos
-				$scope.intensTemp.push($scope.itensCarrinho[i]);
-				
-				var valorLivro = $scope.itensCarrinho[i].livro.valor.replace("R","").replace("$", "").replace(".","").replace(",", ".");
-				valorTotal += parseFloat(valorTotal) + parseFloat(valorLivro * $scope.itensCarrinho[i].quantidade);
-				
-			};
-		}
-		 $scope.pedidoObjeto.valorTotal = 'R$' + valorTotal.toString();
-		 $scope.itensCarrinho = $scope.intensTemp;
-	};
-	
-	
-	$scope.fecharPedido = function() {
-		$location.path('loja/intensLoja/' + $scope.carrinhoLivro);
-	};
-	
-	// listar todos os livros
-	$scope.listarLivros = function(numeroPagina) {
-		$scope.numeroPagina = numeroPagina;
-		$http.get("livro/listar/" + numeroPagina).success(function(response) {
-			$scope.data = response;
-			
-			//---------Inicio total página----------
-				$http.get("livro/totalPagina").success(function(response) {
-					$scope.totalPagina = response;
-				}).error(function(response) {
-					erro("Error: " + response);
-				});
-			//---------Fim total página----------
-			
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-		
-	};
-	
-	$scope.proximo = function () {
-		if (new Number($scope.numeroPagina) < new Number($scope.totalPagina)) {
-		 $scope.listarLivros(new Number($scope.numeroPagina + 1));
-		} 
-	}; 
-	
-	$scope.anterior = function () {
-		if (new Number($scope.numeroPagina) > 1) {
-		  $scope.listarLivros(new Number($scope.numeroPagina - 1));
-		}
-	};
-	
-});
 
 
 // configurações fornecedorController
@@ -421,6 +273,13 @@ app.controller('clienteController', function($scope, $http, $location, $routePar
 	$scope.listarClientes = function(numeroPagina) {
 		$scope.numeroPagina = numeroPagina;
 		$http.get("cliente/listar/" + numeroPagina).success(function(response) {
+			
+			if (response == null || response == '') {
+				$scope.ocultarNavegacao = true;
+			}else {
+				$scope.ocultarNavegacao = false;
+			}
+			
 			$scope.data = response;
 			
 			//---------Inicio total página----------
@@ -486,111 +345,7 @@ app.controller('clienteController', function($scope, $http, $location, $routePar
 
 
 
-//configurações do controller de livros
-app.controller('livroController', function($scope, $http, $location, $routeParams) {
-	
-	if ($routeParams.id != null && $routeParams.id != undefined
-			&& $routeParams.id != ''){// se estiver editando o livro
-		// entra pra editar
-		$http.get("livro/buscarlivro/" + $routeParams.id).success(function(response) {
-			$scope.livro = response;
-			
-			document.getElementById("imagemLivro").src = $scope.livro.foto;
-			
-				$http.get("fornecedor/listartodos").success(function(response) {
-					$scope.fornecedoresList = response;
-					setTimeout(function () {
-						$("#selectFornecedor").prop('selectedIndex', buscarKeyJson(response, 'id', $scope.livro.fornecedor.id));
-					}, 1000);
-					
-				}).error(function(data, status, headers, config) {
-					erro("Error: " + status);
-				});
-			
-			
-		}).error(function(data, status, headers, config) {
-			erro("Error: " + status);
-		});
-		
-	}else { // novo livro
-		$scope.livro = {};
-	}
-	
-	
-	$scope.editarLivro = function(id) {
-		$location.path('livroedit/' + id);
-	};
-	
-	
-	// Responsável por salvar o livro ou editar os dados
-	$scope.salvarLivro = function() {
-				$scope.livro.foto = document.getElementById("imagemLivro").getAttribute("src");
-				
-				$http.post("livro/salvar", $scope.livro).success(function(response) {
-					$scope.livro = {};
-					document.getElementById("imagemLivro").src = '';
-					sucesso("Gravado com sucesso!");
-				}).error(function(response) {
-					erro("Error: " + response);
-				});
-  
-      };
-          
-          
-	// listar todos os livros
-	$scope.listarLivros = function(numeroPagina) {
-		$scope.numeroPagina = numeroPagina;
-		$http.get("livro/listar/" + numeroPagina).success(function(response) {
-			$scope.data = response;
-			
-			//---------Inicio total página----------
-				$http.get("livro/totalPagina").success(function(response) {
-					$scope.totalPagina = response;
-				}).error(function(response) {
-					erro("Error: " + response);
-				});
-			//---------Fim total página----------
-			
-		}).error(function(response) {
-			erro("Error: " + response);
-		});
-		
-	};
-	
-	$scope.proximo = function () {
-		if (new Number($scope.numeroPagina) < new Number($scope.totalPagina)) {
-		 $scope.listarLivros(new Number($scope.numeroPagina + 1));
-		} 
-	};
-	
-	$scope.anterior = function () {
-		if (new Number($scope.numeroPagina) > 1) {
-		  $scope.listarLivros(new Number($scope.numeroPagina - 1));
-		}
-	};
-	
-	// remover livro passado como parametro
-	$scope.removerLivro = function(codLivro) {
-		$http.delete("livro/deletar/" + codLivro).success(function(response) {
-			$scope.listarLivros($scope.numeroPagina);
-			sucesso("Removido com sucesso!"); 
-		}).error(function(data, status, headers, config) {
-			erro("Error: " + status);
-		});
-	};
-	
-	
-	
-	$scope.listarFornecedores = function() {
-		$http.get("fornecedor/listartodos").success(function(response) {
-			$scope.fornecedoresList = response;
-		}).error(function(data, status, headers, config) {
-			erro("Error: " + status);
-		});
-	};
-	
-	
-});
+
 
 // mostra msg de sucesso
 function sucesso(msg) {
